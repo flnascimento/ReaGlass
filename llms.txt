@@ -1,0 +1,9 @@
+# ReaGlass
+
+> REAPER extension that lets Lua ReaScripts open windows with an HTML/CSS/JS interface (reaper.RG_* API, JS<->Lua message bridge). Windows/WebView2 now; macOS/Linux planned.
+
+- [API reference](docs/API.md): all functions, the JS `window.reaper` bridge, minimal example, pitfalls. Read this before writing any script.
+- [API reference (Português)](docs/API.pt-BR.md): same content in Portuguese.
+- [Agent instructions](AGENTS.md): how an AI should use or modify this repo.
+- [Hello example](examples/hello/hello.lua): minimal two-way bridge.
+- [Track Colors example](examples/track_colors/track_colors.lua): realistic UI that reads project state and applies changes.
