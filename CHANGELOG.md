@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Examples: `compressor` (Aurora Comp) and `delay` (Tapeline Delay), with screenshots in the README.
+- README: acknowledgements; install from the release zip.
+
 ## 0.1.0 — first release
 
 - Windows backend (WebView2): `RG_Create`, `RG_Close`, `RG_IsOpen`, `RG_Show`, `RG_SetTitle`,

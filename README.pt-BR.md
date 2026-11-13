@@ -19,6 +19,14 @@ reaper.send('ping', 'oi');                       // página -> Lua
 reaper.on('pong', texto => console.log(texto));  // Lua -> página
 ```
 
+## Capturas de tela
+
+Plugins fictícios feitos com o ReaGlass, rodando dentro do REAPER (a interface é só HTML, CSS e JS):
+
+![Aurora Comp, painel de um compressor](docs/images/compressor.png)
+
+![Tapeline Delay, painel de um delay de fita](docs/images/delay.png)
+
 ## Status
 
 | Plataforma | Motor | Estado |
@@ -31,15 +39,17 @@ O plugin é pequeno (~280 KB) porque usa o motor de navegador que já existe no 
 
 ## Instalação
 
-1. Baixe `reaper_reaglass-x64.dll` na [última release](https://github.com/flnascimento/ReaGlass/releases/latest).
-2. Copie para a pasta `UserPlugins` do REAPER (REAPER → Options → Show REAPER resource path → `UserPlugins`).
+1. Baixe `ReaGlass-*-windows-x64.zip` na [última release](https://github.com/flnascimento/ReaGlass/releases/latest) e descompacte.
+2. Copie `reaper_reaglass-x64.dll` para a pasta `UserPlugins` do REAPER (REAPER → Options → Show REAPER resource path → `UserPlugins`).
 3. Reinicie o REAPER. `reaper.RG_Create` passa a existir.
 4. Requer o Microsoft Edge WebView2 Runtime (já incluído no Windows 10/11).
 
 ## Aprenda pelos exemplos
 
 - [`examples/hello`](examples/hello): ponte de mão dupla mínima.
-- [`examples/track_colors`](examples/track_colors): um painel bem acabado que lê o estado do projeto e colore tracks.
+- [`examples/compressor`](examples/compressor): *Aurora Comp*, interface de compressor com knobs, curva de transferência e medidores.
+- [`examples/delay`](examples/delay): *Tapeline Delay*, interface de delay de fita com knobs, visualização dos ecos e tap tempo.
+- [`examples/track_colors`](examples/track_colors): um painel que lê o estado do projeto e colore tracks.
 - [`docs/API.pt-BR.md`](docs/API.pt-BR.md): referência completa da API.
 
 ## Para assistentes de IA
@@ -60,6 +70,13 @@ build.bat
 ```
 
 Feche o REAPER antes de recompilar: o Windows trava a DLL carregada.
+
+## Agradecimentos
+
+- [webview/webview](https://github.com/webview/webview) (MIT), de Serge Zaitsev e Steffen André Langnes: compilado no plugin para hospedar o motor de navegador.
+- Microsoft Edge WebView2 (headers do SDK, BSD-3-Clause): o motor baseado em Chromium usado no Windows.
+- [SDK do REAPER](https://github.com/justinfrankel/reaper-sdk), da Cockos Incorporated (licença estilo zlib).
+- [ReaImGui](https://github.com/cfillion/reaimgui), de Christian Fillion: a inspiração, e uma ótima opção para quem quer interface no estilo ImGui.
 
 ## Licença
 

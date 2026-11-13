@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurora Comp</title>
+<style>
+  :root { --bg:#0d0e12; --panel:#15171e; --panel2:#1b1e27; --line:rgba(255,255,255,.07); --text:#eceef4; --mute:#7f8499;
+          --accent:#ffb02e; --accent2:#ff7a1a; --ok:#37d6a0; }
+  * { box-sizing: border-box; user-select: none; }
+  html, body { height: 100%; margin: 0; }
+  body { background: radial-gradient(800px 380px at 0% -10%, rgba(255,176,46,.10), transparent 60%), var(--bg);
+         color: var(--text); font: 12px/1.4 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif; display: flex; flex-direction: column; padding: 14px 16px 16px; gap: 12px; overflow: hidden; }
+  header { display: flex; align-items: center; gap: 12px; }
+  .logo { font-weight: 800; letter-spacing: .22em; font-size: 14px; }
+  .logo b { color: var(--accent); }
+  .tag { color: var(--mute); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .spacer { flex: 1; }
+  .preset { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 12px; color: var(--mute); }
+  .preset b { color: var(--text); font-weight: 600; }
+  .btn { background: var(--panel); border: 1px solid var(--line); color: var(--mute); border-radius: 9px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; transition: .15s; }
+  .btn.on { color: #1b1000; background: linear-gradient(140deg, var(--accent), var(--accent2)); border-color: transparent; }
+  .row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; min-height: 0; display: flex; flex-direction: column; }
+  .title { color: var(--mute); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .title b { color: var(--text); font-weight: 600; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+  canvas { width: 100%; flex: 1; min-height: 0; display: block; border-radius: 9px; background: #0f1117; }
+  .meters { display: grid; gap: 14px; align-content: center; flex: 1; }
+  .m { display: grid; grid-template-columns: 34px 1fr 54px; align-items: center; gap: 10px; }
+  .m span { color: var(--mute); font-size: 11px; } .m em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+  .bar { position: relative; height: 12px; background: #0f1117; border-radius: 7px; overflow: hidden; border: 1px solid var(--line); }
+  .bar i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 7px; }
+  .bar.in i, .bar.out i { background: linear-gradient(90deg, #1fbf8a, var(--ok) 60%, #e8e36a 85%, #ff6a4a); }
+  .bar.gr { direction: rtl; } .bar.gr i { background: linear-gradient(270deg, var(--accent), var(--accent2)); direction: ltr; left: auto; right: 0; }
+  .knobs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px 8px; }
+  .knob { display: grid; justify-items: center; gap: 2px; cursor: ns-resize; touch-action: none; }
+  .knob svg { width: 70px; height: 70px; overflow: visible; }
+  .knob .trk { stroke: #272b38; } .knob .val { stroke: var(--accent); filter: drop-shadow(0 0 5px rgba(255,176,46,.45)); }
+  .knob .cap { fill: #1d202b; stroke: rgba(255,255,255,.08); } .knob .ind { stroke: var(--text); }
+  .knob label { color: var(--mute); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .knob output { font-variant-numeric: tabular-nums; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AURORA <b>COMP</b></div><div class="tag">Feed-forward compressor</div>
+  <div class="spacer"></div>
+  <div class="preset">Preset <b id="presetName">Drum Bus Glue</b></div>
+  <button class="btn on" id="power">ON</button>
+</header>
+
+<div class="row">
+  <div class="card"><div class="title"><span>Transfer curve</span><b id="curveInfo"></b></div><canvas id="curve"></canvas></div>
+  <div class="card">
+    <div class="title"><span>Levels</span><b id="grInfo">GR 0.0 dB</b></div>
+    <div class="meters">
+      <div class="m"><span>IN</span><div class="bar in"><i id="mIn"></i></div><em id="tIn">-</em></div>
+      <div class="m"><span>GR</span><div class="bar gr"><i id="mGr"></i></div><em id="tGr">-</em></div>
+      <div class="m"><span>OUT</span><div class="bar out"><i id="mOut"></i></div><em id="tOut">-</em></div>
+    </div>
+  </div>
+</div>
+
+<div class="knobs" id="knobs"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+// ---------- knobs (SVG, drag / wheel / double-click) ----------
+const SPEC = [
+  { id: 'threshold', label: 'Threshold', min: -60, max: 0,    def: -18, unit: ' dB' },
+  { id: 'ratio',     label: 'Ratio',     min: 1,   max: 20,   def: 4,   unit: ':1', log: true },
+  { id: 'attack',    label: 'Attack',    min: 0.1, max: 100,  def: 10,  unit: ' ms', log: true },
+  { id: 'release',   label: 'Release',   min: 10,  max: 1000, def: 120, unit: ' ms', log: true },
+  { id: 'knee',      label: 'Knee',      min: 0,   max: 24,   def: 6,   unit: ' dB' },
+  { id: 'makeup',    label: 'Makeup',    min: 0,   max: 24,   def: 3,   unit: ' dB' },
+  { id: 'mix',       label: 'Mix',       min: 0,   max: 100,  def: 100, unit: ' %' },
+];
+const P = {}; SPEC.forEach(s => P[s.id] = s.def);
+const A0 = 135, A1 = 405, R = 28, C = 35;
+const pt = a => [C + R * Math.cos(a * Math.PI / 180), C + R * Math.sin(a * Math.PI / 180)];
+const arc = (a, b) => { const [x0, y0] = pt(a), [x1, y1] = pt(b); return `M${x0} ${y0}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${x1} ${y1}`; };
+const toNorm = (s, v) => s.log ? Math.log(v / s.min) / Math.log(s.max / s.min) : (v - s.min) / (s.max - s.min);
+const fromNorm = (s, n) => s.log ? s.min * Math.pow(s.max / s.min, n) : s.min + n * (s.max - s.min);
+const fmt = (s, v) => v.toFixed(s.id === 'release' || s.id === 'mix' ? 0 : s.id === 'attack' && v < 10 ? 2 : 1) + s.unit;
+const els = {};
+
+SPEC.forEach(s => {
+  const k = document.createElement('div'); k.className = 'knob';
+  k.innerHTML = `<svg viewBox="0 0 70 70"><path class="trk" d="${arc(A0, A1)}" fill="none" stroke-width="5" stroke-linecap="round"/>
+    <path class="val" fill="none" stroke-width="5" stroke-linecap="round"/><circle class="cap" cx="35" cy="35" r="19"/><line class="ind" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <output></output><label>${s.label}</label>`;
+  $('#knobs').appendChild(k);
+  const e = els[s.id] = { val: k.querySelector('.val'), ind: k.querySelector('.ind'), out: k.querySelector('output') };
+  e.draw = () => {
+    const n = toNorm(s, P[s.id]), a = A0 + n * (A1 - A0), [x, y] = pt(a);
+    e.val.setAttribute('d', n > 0.004 ? arc(A0, a) : ''); e.out.textContent = fmt(s, P[s.id]);
+    e.ind.setAttribute('x1', C + 8 * Math.cos(a * Math.PI / 180)); e.ind.setAttribute('y1', C + 8 * Math.sin(a * Math.PI / 180));
+    e.ind.setAttribute('x2', C + 17 * Math.cos(a * Math.PI / 180)); e.ind.setAttribute('y2', C + 17 * Math.sin(a * Math.PI / 180));
+  };
+  const set = (n, send = true) => { P[s.id] = fromNorm(s, clamp(n, 0, 1)); e.draw(); if (send) reaper.send('param', s.id + '=' + P[s.id]); };
+  let y0, n0;
+  k.onpointerdown = ev => { k.setPointerCapture(ev.pointerId); y0 = ev.clientY; n0 = toNorm(s, P[s.id]); };
+  k.onpointermove = ev => { if (k.hasPointerCapture(ev.pointerId)) set(n0 + (y0 - ev.clientY) / (ev.shiftKey ? 900 : 180)); };
+  k.onwheel = ev => { ev.preventDefault(); set(toNorm(s, P[s.id]) + (ev.deltaY < 0 ? .02 : -.02)); };
+  k.ondblclick = () => set(toNorm(s, s.def));
+  e.set = v => { P[s.id] = clamp(v, s.min, s.max); e.draw(); };
+  e.draw();
+});
+
+// ---------- DSP model (static curve with soft knee + ballistics) ----------
+function outLevel(L) {
+  const T = P.threshold, Rr = P.ratio, W = P.knee, d = L - T;
+  if (2 * d < -W) return L;
+  if (2 * Math.abs(d) <= W) return L + (1 / Rr - 1) * Math.pow(d + W / 2, 2) / (2 * W);
+  return T + d / Rr;
+}
+
+// ---------- transfer curve ----------
+const cv = $('#curve'), cx = cv.getContext('2d');
+function fit() { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+function drawCurve(Lin, Lout) {
+  const w = cv.clientWidth, h = cv.clientHeight, m = 26, X = db => m + (db + 60) / 60 * (w - m - 8), Y = db => h - m - (db + 60) / 60 * (h - m - 8);
+  cx.clearRect(0, 0, w, h);
+  cx.strokeStyle = 'rgba(255,255,255,.06)'; cx.fillStyle = '#6b7088'; cx.font = '10px Segoe UI'; cx.lineWidth = 1;
+  for (let d = -60; d <= 0; d += 12) { cx.beginPath(); cx.moveTo(X(d), Y(-60)); cx.lineTo(X(d), Y(0)); cx.moveTo(X(-60), Y(d)); cx.lineTo(X(0), Y(d)); cx.stroke();
+    cx.fillText(d, X(d) - 8, h - 10); cx.fillText(d, 2, Y(d) + 3); }
+  cx.setLineDash([4, 4]); cx.strokeStyle = 'rgba(255,255,255,.18)'; cx.beginPath(); cx.moveTo(X(-60), Y(-60)); cx.lineTo(X(0), Y(0)); cx.stroke(); cx.setLineDash([]);
+  const g = cx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#ffb02e'); g.addColorStop(1, '#ff7a1a');
+  cx.strokeStyle = g; cx.lineWidth = 2.5; cx.shadowColor = 'rgba(255,150,30,.5)'; cx.shadowBlur = 10; cx.beginPath();
+  for (let d = -60; d <= 0; d += 0.5) { const o = outLevel(d) + P.makeup; d === -60 ? cx.moveTo(X(d), Y(clamp(o, -60, 0))) : cx.lineTo(X(d), Y(clamp(o, -60, 0))); }
+  cx.stroke(); cx.shadowBlur = 0;
+  cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(X(Lin), Y(clamp(Lout, -60, 0)), 4.5, 0, 7); cx.fill();
+  cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(X(P.threshold), Y(-60)); cx.lineTo(X(P.threshold), Y(0)); cx.stroke();
+}
+
+// ---------- animation: simulated drum-bus signal ----------
+let gr = 0, last = performance.now(), power = true;
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; const t = now / 1000;
+  const kick = Math.pow(Math.max(0, Math.sin(t * 2 * Math.PI * 2)), 6) * 22;          // 2 hits per second
+  const L = clamp(-26 + kick + 5 * Math.sin(t * 7.1) + 3 * Math.sin(t * 13.3), -60, 0);
+  const target = power ? Math.max(0, L - outLevel(L)) : 0;
+  const tau = Math.max(.0005, (target > gr ? P.attack : P.release) / 1000);
+  gr += (target - gr) * (1 - Math.exp(-dt / tau));
+  const Lout = L - gr + (power ? P.makeup : 0), pc = db => clamp((db + 60) / 60, 0, 1) * 100;
+  $('#mIn').style.width = pc(L) + '%'; $('#mOut').style.width = pc(Lout) + '%'; $('#mGr').style.width = clamp(gr / 24, 0, 1) * 100 + '%';
+  $('#tIn').textContent = L.toFixed(1); $('#tOut').textContent = Lout.toFixed(1); $('#tGr').textContent = '-' + gr.toFixed(1);
+  $('#grInfo').textContent = 'GR ' + gr.toFixed(1) + ' dB';
+  $('#curveInfo').textContent = `${P.threshold.toFixed(0)} dB  ·  ${P.ratio.toFixed(1)}:1`;
+  drawCurve(L, outLevel(L) + P.makeup);
+  requestAnimationFrame(frame);
+}
+$('#power').onclick = e => { power = !power; e.target.classList.toggle('on', power); e.target.textContent = power ? 'ON' : 'OFF'; reaper.send('power', power ? '1' : '0'); };
+
+// ---------- bridge: restore saved state, then start ----------
+reaper.on('state', p => p.split(';').forEach(kv => { const [k, v] = kv.split('='); if (els[k] && v !== '') els[k].set(parseFloat(v)); }));
+addEventListener('resize', fit);
+fit(); requestAnimationFrame(frame);
+reaper.send('ready', '');
+</script>
+</body>
+</html>

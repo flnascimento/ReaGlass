@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tapeline Delay</title>
+<style>
+  :root { --bg:#0b0d12; --panel:#13161e; --line:rgba(255,255,255,.07); --text:#eceef6; --mute:#7c8298; --a:#5ad1ff; --b:#8b6bff; }
+  * { box-sizing: border-box; user-select: none; }
+  html, body { height: 100%; margin: 0; }
+  body { background: radial-gradient(760px 380px at 100% -10%, rgba(139,107,255,.14), transparent 60%), radial-gradient(600px 300px at 0% 110%, rgba(90,209,255,.08), transparent 60%), var(--bg);
+         color: var(--text); font: 12px/1.4 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif; display: flex; flex-direction: column; padding: 14px 16px 16px; gap: 12px; overflow: hidden; }
+  header { display: flex; align-items: center; gap: 12px; }
+  .logo { font-weight: 800; letter-spacing: .22em; font-size: 14px; } .logo b { background: linear-gradient(90deg, var(--a), var(--b)); -webkit-background-clip: text; color: transparent; }
+  .tag { color: var(--mute); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; } .spacer { flex: 1; }
+  .seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+  .seg button { background: none; border: 0; color: var(--mute); padding: 5px 12px; border-radius: 7px; font: inherit; font-weight: 600; cursor: pointer; transition: .15s; }
+  .seg button.on { background: linear-gradient(140deg, var(--a), var(--b)); color: #07101a; }
+  .btn { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn:active { transform: scale(.97); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .title { color: var(--mute); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .title b { color: var(--text); font-weight: 600; text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  canvas { width: 100%; flex: 1; min-height: 0; display: block; border-radius: 9px; background: #0d1016; }
+  .knobs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 8px 8px; }
+  .knob { display: grid; justify-items: center; gap: 2px; cursor: ns-resize; touch-action: none; }
+  .knob svg { width: 70px; height: 70px; overflow: visible; }
+  .knob .trk { stroke: #262a38; } .knob .val { stroke: var(--a); filter: drop-shadow(0 0 5px rgba(90,209,255,.5)); }
+  .knob .cap { fill: #1b1f2b; stroke: rgba(255,255,255,.08); } .knob .ind { stroke: var(--text); }
+  .knob label { color: var(--mute); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .knob output { font-variant-numeric: tabular-nums; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">TAPELINE <b>DELAY</b></div><div class="tag">Stereo tape echo</div>
+  <div class="spacer"></div>
+  <div class="seg" id="mode"><button data-m="stereo" class="on">Stereo</button><button data-m="pingpong">Ping-pong</button><button data-m="tape">Tape</button></div>
+  <button class="btn" id="tap">Tap tempo</button>
+</header>
+
+<div class="card"><div class="title"><span>Echo taps</span><b id="info"></b></div><canvas id="cv"></canvas></div>
+<div class="knobs" id="knobs"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const SPEC = [
+  { id: 'time',     label: 'Time',     min: 20,  max: 1500,  def: 380, unit: ' ms', log: true },
+  { id: 'feedback', label: 'Feedback', min: 0,   max: 95,    def: 55,  unit: ' %' },
+  { id: 'tone',     label: 'Hi-cut',   min: 500, max: 16000, def: 5200, unit: ' Hz', log: true },
+  { id: 'wobble',   label: 'Wobble',   min: 0,   max: 100,   def: 22,  unit: ' %' },
+  { id: 'mix',      label: 'Mix',      min: 0,   max: 100,   def: 35,  unit: ' %' },
+];
+const P = {}; SPEC.forEach(s => P[s.id] = s.def); let mode = 'stereo';
+const A0 = 135, A1 = 405, R = 28, C = 35;
+const pt = a => [C + R * Math.cos(a * Math.PI / 180), C + R * Math.sin(a * Math.PI / 180)];
+const arc = (a, b) => { const [x0, y0] = pt(a), [x1, y1] = pt(b); return `M${x0} ${y0}A${R} ${R} 0 ${b - a > 180 ? 1 : 0} 1 ${x1} ${y1}`; };
+const toNorm = (s, v) => s.log ? Math.log(v / s.min) / Math.log(s.max / s.min) : (v - s.min) / (s.max - s.min);
+const fromNorm = (s, n) => s.log ? s.min * Math.pow(s.max / s.min, n) : s.min + n * (s.max - s.min);
+const fmt = (s, v) => (s.id === 'tone' && v >= 1000 ? (v / 1000).toFixed(1) + ' kHz' : Math.round(v) + s.unit);
+const els = {};
+
+SPEC.forEach(s => {
+  const k = document.createElement('div'); k.className = 'knob';
+  k.innerHTML = `<svg viewBox="0 0 70 70"><path class="trk" d="${arc(A0, A1)}" fill="none" stroke-width="5" stroke-linecap="round"/>
+    <path class="val" fill="none" stroke-width="5" stroke-linecap="round"/><circle class="cap" cx="35" cy="35" r="19"/><line class="ind" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <output></output><label>${s.label}</label>`;
+  $('#knobs').appendChild(k);
+  const e = els[s.id] = { val: k.querySelector('.val'), ind: k.querySelector('.ind'), out: k.querySelector('output') };
+  e.draw = () => {
+    const n = toNorm(s, P[s.id]), a = (A0 + n * (A1 - A0)) * Math.PI / 180;
+    e.val.setAttribute('d', n > 0.004 ? arc(A0, A0 + n * (A1 - A0)) : ''); e.out.textContent = fmt(s, P[s.id]);
+    e.ind.setAttribute('x1', C + 8 * Math.cos(a)); e.ind.setAttribute('y1', C + 8 * Math.sin(a));
+    e.ind.setAttribute('x2', C + 17 * Math.cos(a)); e.ind.setAttribute('y2', C + 17 * Math.sin(a));
+  };
+  const set = (n, send = true) => { P[s.id] = fromNorm(s, clamp(n, 0, 1)); e.draw(); if (send) reaper.send('param', s.id + '=' + P[s.id]); };
+  let y0, n0;
+  k.onpointerdown = ev => { k.setPointerCapture(ev.pointerId); y0 = ev.clientY; n0 = toNorm(s, P[s.id]); };
+  k.onpointermove = ev => { if (k.hasPointerCapture(ev.pointerId)) set(n0 + (y0 - ev.clientY) / (ev.shiftKey ? 900 : 180)); };
+  k.onwheel = ev => { ev.preventDefault(); set(toNorm(s, P[s.id]) + (ev.deltaY < 0 ? .02 : -.02)); };
+  k.ondblclick = () => set(toNorm(s, s.def));
+  e.set = v => { P[s.id] = clamp(v, s.min, s.max); e.draw(); };
+  e.draw();
+});
+
+document.querySelectorAll('#mode button').forEach(b => b.onclick = () => setMode(b.dataset.m, true));
+function setMode(m, send) { mode = m; document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x.dataset.m === m)); if (send) reaper.send('mode', m); }
+
+// tap tempo
+let taps = [];
+$('#tap').onclick = () => {
+  const n = performance.now(); taps = taps.filter(t => n - t < 2500); taps.push(n);
+  if (taps.length > 1) { const iv = (taps[taps.length - 1] - taps[0]) / (taps.length - 1); P.time = clamp(iv, 20, 1500); els.time.draw(); reaper.send('param', 'time=' + P.time); }
+};
+
+// ---------- echo visualisation ----------
+const cv = $('#cv'), cx = cv.getContext('2d');
+function fit() { const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1; cv.width = r.width * d; cv.height = r.height * d; cx.setTransform(d, 0, 0, d, 0, 0); }
+function frame(now) {
+  const w = cv.clientWidth, h = cv.clientHeight, pad = 26, base = h - pad, top = 18, t = now / 1000;
+  const span = 6 * P.time, N = Math.min(24, Math.floor(span / P.time) + 6);
+  cx.clearRect(0, 0, w, h);
+  const X = ms => pad + ms / (P.time * 7) * (w - pad * 2);
+  cx.strokeStyle = 'rgba(255,255,255,.06)'; cx.fillStyle = '#6b7088'; cx.font = '10px Segoe UI'; cx.lineWidth = 1;
+  for (let i = 0; i <= 7; i++) { const x = X(i * P.time); cx.beginPath(); cx.moveTo(x, top); cx.lineTo(x, base); cx.stroke(); cx.fillText(Math.round(i * P.time) + ' ms', x - 14, h - 8); }
+  cx.beginPath(); cx.moveTo(pad, base); cx.lineTo(w - pad, base); cx.stroke();
+  const fb = P.feedback / 100, mix = P.mix / 100, soft = 1 - clamp(Math.log(P.tone / 500) / Math.log(32), 0, 1) * .55;
+  const bars = [{ ms: 0, lvl: 1, side: 0, dry: true }];
+  for (let i = 1; i <= 7; i++) { const side = mode === 'pingpong' ? (i % 2 ? 1 : -1) : 0; bars.push({ ms: i * P.time + (mode === 'tape' ? Math.sin(t * 3 + i) * P.wobble * .25 * i : 0), lvl: mix * Math.pow(fb, i - 1) * Math.pow(soft, i - 1) * 1.6, side }); }
+  const ph = ((t * 1000) % (P.time * 7));
+  bars.forEach(b => {
+    const x = X(b.ms), hh = clamp(b.lvl, 0, 1) * (base - top), lit = clamp(1 - Math.abs(ph - b.ms) / (P.time * .5), 0, 1);
+    const g = cx.createLinearGradient(0, base - hh, 0, base); g.addColorStop(0, b.dry ? '#ffffff' : '#5ad1ff'); g.addColorStop(1, b.dry ? '#9aa4c0' : '#8b6bff');
+    cx.globalAlpha = .55 + lit * .45; cx.fillStyle = g; cx.shadowColor = 'rgba(110,160,255,.55)'; cx.shadowBlur = 6 + lit * 14;
+    const off = b.side * 9; cx.beginPath(); cx.roundRect(x - 5 + off, base - hh, 10, Math.max(hh, 2), 4); cx.fill(); cx.shadowBlur = 0;
+    if (b.side) { cx.fillStyle = '#7c8298'; cx.fillText(b.side > 0 ? 'R' : 'L', x - 3 + off, base - hh - 5); }
+  });
+  cx.globalAlpha = 1; const px = X(ph); cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.beginPath(); cx.moveTo(px, top); cx.lineTo(px, base); cx.stroke();
+  $('#info').textContent = `${Math.round(P.time)} ms  ·  ${(60000 / P.time).toFixed(0)} BPM  ·  ${P.feedback.toFixed(0)}% fb`;
+  requestAnimationFrame(frame);
+}
+
+reaper.on('state', p => p.split(';').forEach(kv => { const [k, v] = kv.split('='); if (k === 'mode') setMode(v, false); else if (els[k] && v !== '') els[k].set(parseFloat(v)); }));
+addEventListener('resize', fit); fit(); requestAnimationFrame(frame);
+reaper.send('ready', '');
+</script>
+</body>
+</html>

@@ -6,4 +6,6 @@
 - [API reference (Português)](docs/API.pt-BR.md): same content in Portuguese.
 - [Agent instructions](AGENTS.md): how an AI should use or modify this repo.
 - [Hello example](examples/hello/hello.lua): minimal two-way bridge.
+- [Compressor example](examples/compressor/index.html): knobs, canvas curve and meters.
+- [Delay example](examples/delay/index.html): knobs, canvas visualisation, mode switch, tap tempo.
 - [Track Colors example](examples/track_colors/track_colors.lua): realistic UI that reads project state and applies changes.
