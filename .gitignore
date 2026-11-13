@@ -1,0 +1,12 @@
+# Dependências baixadas (ver README) — não redistribuir no repositório
+deps/
+
+# Saída de build e binários (publique o DLL em GitHub Releases)
+build/
+*.dll
+*.obj
+*.lib
+*.exp
+*.zip
+
+# Nunca versionar DLLs de terceiros (ex.: reaper_imgui é LGPL-3.0, outro projeto)
