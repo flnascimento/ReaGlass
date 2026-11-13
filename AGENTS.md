@@ -14,7 +14,7 @@ HTML/CSS/JS interface through `reaper.RG_*` functions.
 
 ## If the task is "work on the plugin itself"
 
-- Build (Windows): `build.bat` (needs VS 2022 Build Tools; deps in `deps/`, see README). Close REAPER before rebuilding: Windows locks the loaded DLL.
+- Build (Windows): run `scripts/fetch-deps.ps1` once (downloads `deps/`, pinned versions), then `build.bat` (needs VS 2022 Build Tools + Git). Close REAPER before rebuilding: Windows locks the loaded DLL.
 - `src/main.cpp`: registers the `RG_*` API with REAPER (`API_`, `APIvararg_`, `APIdef_`).
 - `src/window.h`: platform interface. `src/window_win32.cpp` is the only implementation (WebView2).
   macOS/Linux = add `window_cocoa.mm` / `window_gtk.cpp` implementing the same interface.

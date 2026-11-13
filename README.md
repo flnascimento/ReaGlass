@@ -60,12 +60,10 @@ A Claude Code skill is in [`.claude/skills/reaglass`](.claude/skills/reaglass).
 
 ## Build (Windows)
 
-Requires Visual Studio 2022 Build Tools. Fetch the dependencies into `deps/` (not versioned):
+Requires Visual Studio 2022 Build Tools and Git.
 
-```bash
-git clone --depth 1 https://github.com/justinfrankel/reaper-sdk deps/reaper-sdk
-git clone --depth 1 https://github.com/webview/webview deps/webview
-# WebView2 SDK: download the NuGet package Microsoft.Web.WebView2 and unzip it into deps/wv2
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fetch-deps.ps1   # downloads deps/ pinned to known-good versions
 build.bat
 ```
 

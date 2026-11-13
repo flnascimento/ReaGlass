@@ -60,12 +60,10 @@ Há uma skill do Claude Code em [`.claude/skills/reaglass`](.claude/skills/reagl
 
 ## Compilar (Windows)
 
-Requer Visual Studio 2022 Build Tools. Baixe as dependências em `deps/` (não versionadas):
+Requer Visual Studio 2022 Build Tools e Git.
 
-```bash
-git clone --depth 1 https://github.com/justinfrankel/reaper-sdk deps/reaper-sdk
-git clone --depth 1 https://github.com/webview/webview deps/webview
-# SDK do WebView2: baixe o pacote NuGet Microsoft.Web.WebView2 e descompacte em deps/wv2
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\fetch-deps.ps1   # baixa deps/ nas versões testadas
 build.bat
 ```
 
