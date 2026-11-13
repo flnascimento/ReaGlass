@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Colors</title>
+<style>
+  :root {
+    --bg: #0f1014;
+    --surface: #16171d;
+    --surface-2: #1c1e26;
+    --surface-3: #242733;
+    --line: rgba(255,255,255,.07);
+    --line-strong: rgba(255,255,255,.14);
+    --text: #f1f2f6;
+    --muted: #8b8fa3;
+    --accent: #ff7a00;
+    --accent-2: #ffa94d;
+    --accent-soft: rgba(255,122,0,.14);
+    --radius: 14px;
+    --ease: cubic-bezier(.2,.7,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; color: var(--text); font: 13px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    background:
+      radial-gradient(900px 420px at 100% -10%, rgba(255,122,0,.10), transparent 60%),
+      var(--bg);
+    display: flex; flex-direction: column; overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- topo ---------- */
+  header { display: flex; align-items: center; gap: 12px; padding: 18px 24px 14px; }
+  .mark { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #1c0c00;
+          background: linear-gradient(140deg, var(--accent-2), var(--accent)); box-shadow: 0 8px 24px -6px rgba(255,122,0,.55); }
+  .mark svg { width: 17px; height: 17px; stroke-width: 2.2; }
+  h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .pill { margin-left: auto; display: flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 99px;
+          background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #55586a; transition: .3s; }
+  .pill.ok .dot { background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.18); }
+
+  /* ---------- layout ---------- */
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 316px 1fr; gap: 16px; padding: 4px 24px 24px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-height: 0; }
+  .controls { overflow-y: auto; padding: 6px 16px 16px; }
+  .section { padding-top: 16px; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 9px; }
+
+  /* ---------- controles ---------- */
+  .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--surface-2); border: 1px solid var(--line);
+         border-radius: 11px; padding: 3px; }
+  .seg::before { content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 8px;
+                 background: var(--surface-3); border: 1px solid var(--line-strong); transition: transform .25s var(--ease); }
+  .seg[data-v="all"]::before { transform: translateX(100%); }
+  .seg button { position: relative; z-index: 1; background: none; border: 0; color: var(--muted); padding: 7px; font: inherit; font-weight: 550; cursor: pointer; transition: color .2s; }
+  .seg button.on { color: var(--text); }
+
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; cursor: pointer; font: inherit; font-weight: 550;
+         color: var(--text); background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px;
+         transition: background .15s, border-color .15s, transform .08s; }
+  .btn:hover { background: var(--surface-3); border-color: var(--line-strong); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { color: #1c0c00; font-weight: 700; font-size: 13.5px; padding: 12px; border: 0;
+                 background: linear-gradient(140deg, var(--accent-2), var(--accent)); box-shadow: 0 10px 26px -10px rgba(255,122,0,.8); }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.ghost { color: #ff8a8a; }
+  .btn.ghost:hover { background: rgba(255,90,90,.1); border-color: rgba(255,90,90,.35); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stack { display: grid; gap: 8px; }
+
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; margin-bottom: 9px; }
+  .sw { aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 0; padding: 0; position: relative; transition: transform .15s var(--ease); }
+  .sw:hover { transform: scale(1.14); }
+  .sw.on::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--text); }
+  .color-field { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 6px 10px 6px 6px; }
+  .color-field input[type=color], .gcol input[type=color] { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border: 0; padding: 0; background: none; cursor: pointer; border-radius: 8px; flex: none; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type=color]::-webkit-color-swatch { border: 1px solid var(--line-strong); border-radius: 8px; }
+  .color-field code { font-family: "Cascadia Mono", Consolas, monospace; color: var(--muted); font-size: 12px; }
+  .color-field .btn { width: auto; margin-left: auto; padding: 6px 12px; }
+
+  .gradient-row { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 6px; margin-bottom: 8px; }
+  .gcol { display: flex; }
+  .gbar { flex: 1; height: 8px; border-radius: 99px; background: linear-gradient(90deg, var(--g1, #ff7a00), var(--g2, #7a00ff)); }
+
+  /* ---------- lista ---------- */
+  .tracks-card { display: flex; flex-direction: column; overflow: hidden; }
+  .tracks-head { display: flex; align-items: baseline; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+  .tracks-head b { font-size: 14px; font-weight: 650; }
+  .tracks-head span { color: var(--muted); font-size: 12px; }
+  .tracks-head .hint { margin-left: auto; }
+  #tracks { overflow-y: auto; padding: 8px; flex: 1; }
+  .track { display: grid; grid-template-columns: 28px 4px 1fr auto auto; align-items: center; gap: 12px; padding: 9px 12px 9px 8px;
+           border-radius: 11px; cursor: pointer; border: 1px solid transparent; transition: background .15s, border-color .15s; }
+  .track:hover { background: var(--surface-2); }
+  .track.sel { background: var(--accent-soft); border-color: rgba(255,122,0,.35); }
+  .track.out { opacity: .45; }
+  .num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+  .bar { width: 4px; height: 26px; border-radius: 4px; background: var(--c, #3a3d4c); transition: background .3s; }
+  .bar.none { background: repeating-linear-gradient(45deg, #3a3d4c 0 3px, #2a2c38 3px 6px); }
+  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+  .chip { width: 56px; height: 20px; border-radius: 7px; background: var(--c, #3a3d4c); border: 1px solid var(--line-strong); transition: background .3s; }
+  .chip.none { background: repeating-linear-gradient(45deg, #31343f 0 4px, #262833 4px 8px); }
+  .hex { width: 66px; text-align: right; color: var(--muted); font: 11.5px "Cascadia Mono", Consolas, monospace; }
+  .empty { height: 100%; display: grid; place-content: center; text-align: center; color: var(--muted); gap: 4px; }
+  .empty b { color: var(--text); font-weight: 600; }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 14px); opacity: 0; pointer-events: none; transition: .25s var(--ease);
+           display: flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 99px; font-weight: 600;
+           background: rgba(36,39,51,.92); border: 1px solid var(--line-strong); backdrop-filter: blur(10px); box-shadow: 0 14px 40px -10px #000; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast .dot { background: var(--accent); }
+
+  ::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2c2f3d; border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3e50; background-clip: content-box; }
+  @media (max-width: 560px) { main { grid-template-columns: 1fr; overflow-y: auto; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.2 6 10.5a6 6 0 0 1-12 0C6 9.2 12 3 12 3z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/><circle cx="9" cy="15" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-track" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+</svg>
+
+<header>
+  <div class="mark"><svg class="i"><use href="#i-drop"/></svg></div>
+  <div><h1>Track Colors</h1><div class="sub">Cores das tracks do projeto</div></div>
+  <div class="pill" id="pill"><span class="dot"></span><span id="status">Conectando</span></div>
+</header>
+
+<main>
+  <section class="card controls">
+    <div class="section" style="padding-top:12px">
+      <p class="label">Aplicar em</p>
+      <div class="seg" id="scope" data-v="sel">
+        <button data-v="sel" class="on">Selecionadas</button>
+        <button data-v="all">Todas</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn primary" id="orange"><svg class="i"><use href="#i-drop"/></svg>Pintar de laranja</button>
+    </div>
+
+    <div class="section">
+      <p class="label">Cor personalizada</p>
+      <div class="swatches" id="swatches"></div>
+      <div class="color-field">
+        <input type="color" id="picker" value="#ff7a00">
+        <code id="pickerHex">#ff7a00</code>
+        <button class="btn" id="applyColor">Aplicar</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="label">Degradês</p>
+      <div class="stack">
+        <button class="btn" id="shades"><svg class="i"><use href="#i-layers"/></svg>Degradê de laranja</button>
+        <div class="gradient-row" id="grow">
+          <span class="gcol"><input type="color" id="g1" value="#ff7a00"></span>
+          <span class="gbar"></span>
+          <span class="gcol"><input type="color" id="g2" value="#7a00ff"></span>
+        </div>
+        <button class="btn" id="gradient"><svg class="i"><use href="#i-sliders"/></svg>Aplicar degradê</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="label">Ajustes</p>
+      <div class="grid2">
+        <button class="btn" id="lighter"><svg class="i"><use href="#i-sun"/></svg>Clarear</button>
+        <button class="btn" id="darker"><svg class="i"><use href="#i-moon"/></svg>Escurecer</button>
+        <button class="btn" id="hue"><svg class="i"><use href="#i-rotate"/></svg>Girar matiz</button>
+        <button class="btn" id="random"><svg class="i"><use href="#i-dice"/></svg>Aleatório</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn ghost" id="reset"><svg class="i"><use href="#i-ban"/></svg>Descolorir</button>
+    </div>
+  </section>
+
+  <section class="card tracks-card">
+    <div class="tracks-head"><b>Tracks</b><span id="count"></span><span class="hint">Clique para selecionar</span></div>
+    <div id="tracks"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"><span class="dot"></span><span id="toastText"></span></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let tracks = [], scope = 'sel', picked = '#ff7a00';
+const ORANGE = '#ff7a00';
+const PALETTE = ['#ff7a00','#ff9f1c','#ffc971','#ef4444','#ec4899','#c026d3','#8b5cf6','#4f46e5',
+                 '#3b82f6','#22d3ee','#10b981','#14b8a6','#84cc16','#facc15','#a1a1aa','#52525b'];
+
+// --- cores -----------------------------------------------------------------
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+function rgbToHex(r, g, b) { return '#' + [r, g, b].map(v => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join(''); }
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, s, l];
+}
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  const f = n => { const k = (n + h / 30) % 12, a = s * Math.min(l, 1 - l); return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return rgbToHex(f(0) * 255, f(8) * 255, f(4) * 255);
+}
+const hexToHsl = h => rgbToHsl(...hexToRgb(h));
+function mix(a, b, t) { const A = hexToRgb(a), B = hexToRgb(b); return rgbToHex(...A.map((v, i) => v + (B[i] - v) * t)); }
+
+// --- ações -----------------------------------------------------------------
+const inScope = t => scope === 'all' || t.s;
+const target = () => tracks.filter(inScope);
+function commit(map, msg) {
+  const list = target();
+  if (!list.length) return toast('Nenhuma track no escopo');
+  reaper.send('set', list.map((t, k) => t.i + '=' + map(t, k, list.length)).join(';'));
+  toast(msg + ' · ' + list.length + (list.length === 1 ? ' track' : ' tracks'));
+}
+const spread = (k, n) => n < 2 ? 0 : k / (n - 1);
+
+$('#orange').onclick = () => commit(() => ORANGE, 'Laranja aplicado');
+$('#applyColor').onclick = () => commit(() => picked, 'Cor aplicada');
+$('#shades').onclick = () => commit((t, k, n) => mix('#ffc26b', '#c24a00', spread(k, n)), 'Degradê de laranja');
+$('#gradient').onclick = () => commit((t, k, n) => mix($('#g1').value, $('#g2').value, spread(k, n)), 'Degradê aplicado');
+$('#reset').onclick = () => commit(() => 'none', 'Cores removidas');
+$('#random').onclick = () => commit(() => hslToHex(Math.random() * 360, .65, .55), 'Cores aleatórias');
+const adjust = fn => t => { if (!t.c) return 'none'; const [h, s, l] = hexToHsl(t.c); return fn(h, s, l); };
+$('#lighter').onclick = () => commit(adjust((h, s, l) => hslToHex(h, s, clamp(l + .1, .08, .92))), 'Mais claro');
+$('#darker').onclick  = () => commit(adjust((h, s, l) => hslToHex(h, s, clamp(l - .1, .08, .92))), 'Mais escuro');
+$('#hue').onclick     = () => commit(adjust((h, s, l) => hslToHex(h + 30, s, l)), 'Matiz girado');
+
+// --- UI --------------------------------------------------------------------
+document.querySelectorAll('#scope button').forEach(b => b.onclick = () => {
+  scope = b.dataset.v; $('#scope').dataset.v = scope;
+  document.querySelectorAll('#scope button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+function syncPicker() { $('#pickerHex').textContent = picked; document.querySelectorAll('.sw').forEach(s => s.classList.toggle('on', s.dataset.c === picked)); }
+$('#picker').oninput = e => { picked = e.target.value; syncPicker(); };
+$('#swatches').innerHTML = PALETTE.map(c => `<button class="sw" data-c="${c}" style="background:${c}" title="${c}"></button>`).join('');
+$('#swatches').onclick = e => { const c = e.target.dataset.c; if (c) { picked = c; $('#picker').value = c; syncPicker(); } };
+function syncGrad() { const r = $('#grow').style; r.setProperty('--g1', $('#g1').value); r.setProperty('--g2', $('#g2').value); }
+$('#g1').oninput = $('#g2').oninput = syncGrad;
+syncPicker(); syncGrad();
+
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function render() {
+  const n = target().length;
+  $('#count').textContent = tracks.length + (tracks.length === 1 ? ' track' : ' tracks') + ' · ' + n + ' no escopo';
+  $('#tracks').innerHTML = tracks.length ? tracks.map(t => {
+    const c = t.c ? `style="--c:${t.c}"` : '';
+    const none = t.c ? '' : 'none';
+    return `<div class="track ${t.s ? 'sel' : ''} ${inScope(t) ? '' : 'out'}" data-i="${t.i}">
+      <span class="num">${t.i + 1}</span>
+      <span class="bar ${none}" ${c}></span>
+      <span class="name">${esc(t.n || 'Sem nome')}</span>
+      <span class="chip ${none}" ${c}></span>
+      <span class="hex">${t.c || '—'}</span>
+    </div>`;
+  }).join('') : `<div class="empty"><b>Nenhuma track no projeto</b><span>Adicione tracks no REAPER para colori-las.</span></div>`;
+}
+$('#tracks').onclick = e => { const r = e.target.closest('.track'); if (r) reaper.send('select', r.dataset.i); };
+
+let tt; function toast(m) {
+  $('#toastText').textContent = m; $('#toast').classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => $('#toast').classList.remove('show'), 1700);
+}
+
+reaper.on('tracks', p => {
+  tracks = JSON.parse(p);
+  $('#status').textContent = 'Conectado'; $('#pill').classList.add('ok');
+  render();
+});
+reaper.send('ready', '');
+</script>
+</body>
+</html>
